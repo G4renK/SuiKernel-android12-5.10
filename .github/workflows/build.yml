@@ -1,0 +1,37 @@
+name: Build SuiKernel
+on:
+  push:
+    branches: [ patch-2 ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Siapkan alat
+        run: |
+          sudo apt update
+          sudo apt install -y git make bc bison flex libssl-dev zip lz4
+          git clone --depth=1 https://github.com/LineageOS/android_prebuilts_gcc_linux-x86_aarch64_aarch64-linux-gnu gcc
+
+      - name: Bangun kernel
+        run: |
+          export ARCH=arm64
+          export CROSS_COMPILE=$(pwd)/gcc/bin/aarch64-linux-gnu-
+          make gki_defconfig
+          make -j$(nproc)
+
+      - name: Siapkan zip
+        run: |
+          mkdir -p out/boot
+          cp arch/arm64/boot/Image.gz out/boot/
+          cd out && zip -r ../SuiKernel_WiFi.zip .
+
+      - name: Simpan hasil
+        uses: actions/upload-artifact@v4
+        with:
+          name: Kernel-SiAP-Flash
+          path: SuiKernel_WiFi.zip
+          
